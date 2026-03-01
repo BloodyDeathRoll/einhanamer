@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Network -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Foreground services -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!--
+        FOREGROUND_SERVICE_SPECIAL_USE is required on API 34+ for services
+        that don't fit a predefined foreground-service type.
+        tools:ignore suppresses the lint "protected permission" warning since
+        this permission is granted at install-time by the platform.
+    -->
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"
+        tools:ignore="ProtectedPermissions" />
+
+    <!--
+        PACKAGE_USAGE_STATS — lets UsageStatsManager surface per-app
+        statistics. Also used as the "gate" permission before attempting
+        AppOpsManager calls. The user must grant it manually in:
+          Settings → Apps → Special app access → Usage access.
+    -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!--
+        QUERY_ALL_PACKAGES — required on API 30+ to enumerate installed
+        packages via PackageManager (needed to resolve Meta app UIDs).
+    -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.EinHanamer">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.EinHanamer">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            VPN service.
+            android:permission ensures only the system can bind to it.
+            The <property> tag satisfies the API 34 Play Store review for
+            FOREGROUND_SERVICE_SPECIAL_USE.
+        -->
+        <service
+            android:name=".vpn.LocalVpnService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:permission="android.permission.BIND_VPN_SERVICE">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Local network privacy monitor: captures and logs all outbound IP traffic for the device owner's inspection." />
+        </service>
+
+        <!--
+            Mic-monitor service (foreground, type=specialUse).
+        -->
+        <service
+            android:name=".monitor.MicMonitorService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Polls AppOpsManager to detect when Meta apps access the device microphone." />
+        </service>
+
+    </application>
+
+</manifest>
