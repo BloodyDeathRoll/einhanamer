@@ -167,8 +167,15 @@ class TcpSession(
                 val n = socket.inputStream.read(buf)
                 if (n < 0) break
                 if (n > 0) {
-                    val data = buf.copyOf(n)
-                    synchronized(this@TcpSession) { sendData(data) }
+                    // Split into MSS-sized segments so no single packet exceeds the TUN MTU.
+                    // Without this, large server responses (e.g. TLS certificates) create
+                    // oversized IP packets that the kernel drops because DF=1 is set.
+                    var offset = 0
+                    while (offset < n) {
+                        val chunk = buf.copyOfRange(offset, minOf(offset + MSS, n))
+                        synchronized(this@TcpSession) { sendData(chunk) }
+                        offset += chunk.size
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -231,5 +238,8 @@ class TcpSession(
 
     companion object {
         private const val MAX_PENDING_BYTES = 65_536
+        // Maximum TCP payload per segment: MTU(1500) - IPv6 header(40) - TCP header(20).
+        // Using the IPv6 value (1440) is safe for both IPv4 and IPv6.
+        private const val MSS = 1440
     }
 }
